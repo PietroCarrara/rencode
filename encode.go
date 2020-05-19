@@ -29,6 +29,8 @@ func Encode(data interface{}) ([]byte, error) {
 		return encodeInt(valueof.Int())
 	case reflect.Float32, reflect.Float64:
 		return encodeFloat(valueof.Float())
+	case reflect.Bool:
+		return encodeBool(valueof.Bool()), nil
 	case reflect.String:
 		return encodeString(valueof.String())
 	case reflect.Array, reflect.Slice:
