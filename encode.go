@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"sort"
 	"strconv"
 )
 
@@ -32,6 +33,8 @@ func Encode(data interface{}) ([]byte, error) {
 		return encodeString(valueof.String())
 	case reflect.Array, reflect.Slice:
 		return encodeSlice(valueof.Interface())
+	case reflect.Map:
+		return encodeMap(data)
 	}
 
 	return nil, fmt.Errorf("can't encode value of type %s, kind %s", typeof, typeof.Kind())
@@ -128,6 +131,56 @@ func encodeSlice(data interface{}) ([]byte, error) {
 	}
 
 	if length >= listFixedCount {
+		bytes = append(bytes, chrTerm)
+	}
+
+	return bytes, nil
+}
+
+func encodeMap(data interface{}) ([]byte, error) {
+	var bytes []byte
+
+	typeof := reflect.TypeOf(data)
+	valueof := reflect.ValueOf(data)
+
+	if typeof.Kind() != reflect.Map {
+		panic("encoding non-map type on encodeMap")
+	}
+
+	keys := valueof.MapKeys()
+
+	if len(keys) < dictFixedCount {
+		bytes = append(bytes, byte(dictFixedStart+len(keys)))
+	} else {
+		bytes = append(bytes, chrDict)
+	}
+
+	// Sort keys to make the ordering constant
+	// bewteen encodings (helps out when testing)
+	sort.Slice(keys, func(i, j int) bool {
+		iVal := fmt.Sprint(keys[i].Interface())
+		jVal := fmt.Sprint(keys[j].Interface())
+
+		return iVal < jVal
+	})
+
+	for _, key := range keys {
+		val := valueof.MapIndex(key)
+
+		bin, err := Encode(key.Interface())
+		if err != nil {
+			return nil, err
+		}
+		bytes = append(bytes, bin...)
+
+		bin, err = Encode(val.Interface())
+		if err != nil {
+			return nil, err
+		}
+		bytes = append(bytes, bin...)
+	}
+
+	if len(keys) >= dictFixedCount {
 		bytes = append(bytes, chrTerm)
 	}
 
