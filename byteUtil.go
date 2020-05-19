@@ -5,7 +5,7 @@ import (
 	"math"
 )
 
-// Encodes a int into a byte slice
+// Encodes a int into a byte slice and returns how many bytes were used
 // If the slice is too small this function panics
 // Takes at most 8 bytes
 func putInt(buf []byte, n int64) int {
