@@ -32,6 +32,6 @@ const (
 	strFixedStart = 128
 	strFixedCount = 64
 
-	ListFixedStart = strFixedStart + strFixedCount
-	ListFixedCount = 64
+	listFixedStart = strFixedStart + strFixedCount
+	listFixedCount = 64
 )

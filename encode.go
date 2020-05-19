@@ -2,7 +2,9 @@ package rencode
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math"
+	"reflect"
 	"strconv"
 )
 
@@ -11,6 +13,28 @@ var chrIntMap = map[int]byte{
 	2: chrInt2,
 	4: chrInt4,
 	8: chrInt8,
+}
+
+func Encode(data interface{}) ([]byte, error) {
+	typeof := reflect.TypeOf(data)
+	valueof := reflect.ValueOf(data)
+
+	if data == nil {
+		return encodeNil(), nil
+	}
+
+	switch typeof.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return encodeInt(valueof.Int())
+	case reflect.Float32, reflect.Float64:
+		return encodeFloat(valueof.Float())
+	case reflect.String:
+		return encodeString(valueof.String())
+	case reflect.Array, reflect.Slice:
+		return encodeSlice(valueof.Interface())
+	}
+
+	return nil, fmt.Errorf("can't encode value of type %s, kind %s", typeof, typeof.Kind())
 }
 
 func encodeInt(n int64) ([]byte, error) {
@@ -74,5 +98,38 @@ func encodeString(s string) ([]byte, error) {
 	bytes = append(bytes, size...)
 	bytes = append(bytes, ':')
 	bytes = append(bytes, s...)
+	return bytes, nil
+}
+
+func encodeSlice(data interface{}) ([]byte, error) {
+	var bytes []byte
+
+	typeof := reflect.TypeOf(data)
+	valueof := reflect.ValueOf(data)
+
+	if typeof.Kind() != reflect.Array && typeof.Kind() != reflect.Slice {
+		panic("encoding non-slice type on encodeSlice")
+	}
+
+	length := valueof.Len()
+
+	if length < listFixedCount {
+		bytes = append(bytes, byte(listFixedStart+length))
+	} else {
+		bytes = append(bytes, chrList)
+	}
+
+	for i := 0; i < length; i++ {
+		val, err := Encode(valueof.Index(i).Interface())
+		if err != nil {
+			return nil, err
+		}
+		bytes = append(bytes, val...)
+	}
+
+	if length >= listFixedCount {
+		bytes = append(bytes, chrTerm)
+	}
+
 	return bytes, nil
 }
