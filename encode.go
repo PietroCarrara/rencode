@@ -3,6 +3,7 @@ package rencode
 import (
 	"encoding/binary"
 	"math"
+	"strconv"
 )
 
 var chrIntMap = map[int]byte{
@@ -42,4 +43,36 @@ func encodeFloat(n float64) ([]byte, error) {
 	bits := math.Float64bits(n)
 	binary.BigEndian.PutUint64(buf[1:], bits)
 	return buf[:8+1], nil
+}
+
+func encodeBool(n bool) []byte {
+	buff := make([]byte, 1)
+
+	if n {
+		buff[0] = chrTrue
+	} else {
+		buff[0] = chrFalse
+	}
+
+	return buff
+}
+
+func encodeNil() []byte {
+	return []byte{chrNone}
+}
+
+func encodeString(s string) ([]byte, error) {
+	var bytes []byte
+
+	if len(s) < strFixedCount {
+		bytes = append(bytes, byte(strFixedStart+len(s)))
+		bytes = append(bytes, s...)
+		return bytes, nil
+	}
+
+	size := strconv.Itoa(len(s))
+	bytes = append(bytes, size...)
+	bytes = append(bytes, ':')
+	bytes = append(bytes, s...)
+	return bytes, nil
 }
