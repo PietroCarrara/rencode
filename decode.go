@@ -3,6 +3,7 @@ package rencode
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 )
@@ -32,9 +33,9 @@ func Decode(buf []byte, ref interface{}) (int, error) {
 	case chrInt8:
 		return decodeInt64(buf, ptr)
 	case chrFloat32:
-		// return decodeFloat32
+		return decodeFloat32(buf, ptr)
 	case chrFloat64:
-		// return decodeFloat64
+		return decodeFloat64(buf, ptr)
 	case chrTrue:
 		ptr.Set(reflect.ValueOf(true))
 		return 1, nil
@@ -151,6 +152,40 @@ func decodeInt64(buf []byte, val reflect.Value) (int, error) {
 	integer := int64(binary.BigEndian.Uint64(buf[1:]))
 
 	val.SetInt(integer)
+
+	return 9, nil
+}
+
+func decodeFloat32(buf []byte, val reflect.Value) (int, error) {
+	if buf[0] != chrFloat32 {
+		return 0, fmt.Errorf("expected chr byte %d, found %d", chrFloat32, buf[0])
+	}
+
+	if len(buf[1:]) < 4 {
+		return 0, fmt.Errorf("incomplete stream: decoding 4 bytes but found %d", len(buf[1:]))
+	}
+
+	bits := binary.BigEndian.Uint32(buf[1:])
+	float := math.Float32frombits(bits)
+
+	val.SetFloat(float64(float))
+
+	return 5, nil
+}
+
+func decodeFloat64(buf []byte, val reflect.Value) (int, error) {
+	if buf[0] != chrFloat64 {
+		return 0, fmt.Errorf("expected chr byte %d, found %d", chrFloat64, buf[0])
+	}
+
+	if len(buf[1:]) < 8 {
+		return 0, fmt.Errorf("incomplete stream: decoding 4 bytes but found %d", len(buf[1:]))
+	}
+
+	bits := binary.BigEndian.Uint64(buf[1:])
+	float := math.Float64frombits(bits)
+
+	val.SetFloat(float)
 
 	return 9, nil
 }

@@ -99,6 +99,22 @@ func TestDecodingInt64(t *testing.T) {
 	fail(testDecodeInt64([]byte{65, 127, 255, 255, 255, 255, 255, 255, 255}, math.MaxInt64), t)
 }
 
+func TestDecodingFloat32(t *testing.T) {
+	t.Parallel()
+
+	fail(testDecodeFloat32([]byte{66, 65, 120, 0, 0}, 15.5), t)
+	fail(testDecodeFloat32([]byte{66, 65, 69, 112, 164}, 12.34), t)
+	fail(testDecodeFloat32([]byte{66, 195, 128, 89, 154}, -256.7), t)
+}
+
+func TestDecodingFloat64(t *testing.T) {
+	t.Parallel()
+
+	fail(testDecodeFloat64([]byte{44, 64, 47, 0, 0, 0, 0, 0, 0}, 15.5), t)
+	fail(testDecodeFloat64([]byte{44, 192, 112, 11, 51, 51, 51, 51, 51}, -256.7), t)
+	fail(testDecodeFloat64([]byte{44, 64, 40, 174, 20, 122, 225, 71, 174}, 12.34), t)
+}
+
 func testDecodeIntStr(value []byte, target int64) error {
 	var val int64
 	_, err := Decode(value, &val)
@@ -164,6 +180,34 @@ func testDecodeInt64(value []byte, target int64) error {
 	}
 	if target != val {
 		return fmt.Errorf("expected %d, but got %d", target, val)
+	}
+
+	return nil
+}
+
+func testDecodeFloat32(value []byte, target float32) error {
+	var val float32
+	_, err := Decode(value, &val)
+
+	if err != nil {
+		return err
+	}
+	if target != val {
+		return fmt.Errorf("expected %f, but got %f", target, val)
+	}
+
+	return nil
+}
+
+func testDecodeFloat64(value []byte, target float64) error {
+	var val float64
+	_, err := Decode(value, &val)
+
+	if err != nil {
+		return err
+	}
+	if target != val {
+		return fmt.Errorf("expected %f, but got %f", target, val)
 	}
 
 	return nil
