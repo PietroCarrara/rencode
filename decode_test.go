@@ -1,8 +1,14 @@
 package rencode
 
-import "testing"
+import (
+	"fmt"
+	"math"
+	"testing"
+)
 
 func TestDecodingBool(t *testing.T) {
+	t.Parallel()
+
 	tru := false
 	fal := true
 
@@ -22,6 +28,8 @@ func TestDecodingBool(t *testing.T) {
 }
 
 func TestDecodingNil(t *testing.T) {
+	t.Parallel()
+
 	b := true
 	i := 123
 	str := "hello, world"
@@ -48,4 +56,123 @@ func TestDecodingNil(t *testing.T) {
 	if dict != nil {
 		t.Error("map is a non-zero value")
 	}
+}
+
+func TestDecodingIntStr(t *testing.T) {
+	t.Parallel()
+
+	fail(testDecodeIntStr(intStr("0024"), 24), t)
+	fail(testDecodeIntStr(intStr("12345"), 12345), t)
+	fail(testDecodeIntStr(intStr("-1024"), -1024), t)
+	fail(testDecodeIntStr(intStr("-123456789"), -123456789), t)
+}
+
+func TestDecodingInt8(t *testing.T) {
+	t.Parallel()
+
+	fail(testDecodeInt32([]byte{62, 0}, 0), t)
+	fail(testDecodeInt32([]byte{62, 128}, math.MinInt8), t)
+	fail(testDecodeInt32([]byte{62, 127}, math.MaxInt8), t)
+}
+
+func TestDecodingInt16(t *testing.T) {
+	t.Parallel()
+
+	fail(testDecodeInt32([]byte{63, 0, 0}, 0), t)
+	fail(testDecodeInt32([]byte{63, 128, 0}, math.MinInt16), t)
+	fail(testDecodeInt32([]byte{63, 127, 255}, math.MaxInt16), t)
+}
+
+func TestDecodingInt32(t *testing.T) {
+	t.Parallel()
+
+	fail(testDecodeInt32([]byte{64, 0, 0, 0, 0}, 0), t)
+	fail(testDecodeInt32([]byte{64, 128, 0, 0, 0}, math.MinInt32), t)
+	fail(testDecodeInt32([]byte{64, 127, 255, 255, 255}, math.MaxInt32), t)
+}
+
+func TestDecodingInt64(t *testing.T) {
+	t.Parallel()
+
+	fail(testDecodeInt64([]byte{65, 0, 0, 0, 0, 0, 0, 0, 0}, 0), t)
+	fail(testDecodeInt64([]byte{65, 128, 0, 0, 0, 0, 0, 0, 0}, math.MinInt64), t)
+	fail(testDecodeInt64([]byte{65, 127, 255, 255, 255, 255, 255, 255, 255}, math.MaxInt64), t)
+}
+
+func testDecodeIntStr(value []byte, target int64) error {
+	var val int64
+	_, err := Decode(value, &val)
+
+	if err != nil {
+		return err
+	}
+	if target != val {
+		return fmt.Errorf("expected %d, but got %d", target, val)
+	}
+
+	return nil
+}
+
+func testDecodeInt8(value []byte, target int8) error {
+	var val int8
+	_, err := Decode(value, &val)
+
+	if err != nil {
+		return err
+	}
+	if target != val {
+		return fmt.Errorf("expected %d, but got %d", target, val)
+	}
+
+	return nil
+}
+
+func testDecodeInt16(value []byte, target int16) error {
+	var val int16
+	_, err := Decode(value, &val)
+
+	if err != nil {
+		return err
+	}
+	if target != val {
+		return fmt.Errorf("expected %d, but got %d", target, val)
+	}
+
+	return nil
+}
+
+func testDecodeInt32(value []byte, target int32) error {
+	var val int32
+	_, err := Decode(value, &val)
+
+	if err != nil {
+		return err
+	}
+	if target != val {
+		return fmt.Errorf("expected %d, but got %d", target, val)
+	}
+
+	return nil
+}
+
+func testDecodeInt64(value []byte, target int64) error {
+	var val int64
+	_, err := Decode(value, &val)
+
+	if err != nil {
+		return err
+	}
+	if target != val {
+		return fmt.Errorf("expected %d, but got %d", target, val)
+	}
+
+	return nil
+}
+
+func intStr(s string) []byte {
+	bytes := []byte{chrInt}
+	bytes = append(bytes, s...)
+	bytes = append(bytes, chrTerm)
+
+	return bytes
 }
