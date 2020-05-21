@@ -16,8 +16,9 @@ func Decode(buf []byte, ref interface{}) (int, error) {
 	}
 
 	ptr := val.Elem()
+	chr := buf[0]
 
-	switch buf[0] {
+	switch chr {
 	case chrList:
 		return decodeSliceVarLength(buf, ptr)
 	case chrDict:
@@ -47,14 +48,20 @@ func Decode(buf []byte, ref interface{}) (int, error) {
 		return 1, nil
 	}
 
-	panic("TODO")
+	if intPosFixedStart <= chr && chr <= intPosFixedStart+intPosFixedCount ||
+		intNegFixedStart <= chr && chr < intNegFixedStart+intNegFixedCount {
+
+		return decodeIntSmall(buf, ptr)
+	}
+
+	panic("this line should be theoretically impossible to be executed")
 }
 
 func decodeIntStr(buf []byte, val reflect.Value) (int, error) {
 	chr := buf[0]
 
 	if chr != chrInt {
-		return 0, fmt.Errorf("decodeInt8: expected chr byte to be %d, but found %d", chrInt1, chr)
+		return 0, fmt.Errorf("expected chr byte to be %d, but found %d", chrInt1, chr)
 	}
 
 	length := len(buf)
@@ -76,7 +83,7 @@ func decodeIntStr(buf []byte, val reflect.Value) (int, error) {
 		return 0, err
 	}
 
-	val.SetInt(integer)
+	val.Set(reflect.ValueOf(integer).Convert(val.Type()))
 
 	return index + 1, nil
 }
@@ -94,7 +101,7 @@ func decodeInt8(buf []byte, val reflect.Value) (int, error) {
 
 	integer := int8(buf[1])
 
-	val.SetInt(int64(integer))
+	val.Set(reflect.ValueOf(integer).Convert(val.Type()))
 
 	return 2, nil
 
@@ -113,7 +120,7 @@ func decodeInt16(buf []byte, val reflect.Value) (int, error) {
 
 	integer := int16(binary.BigEndian.Uint16(buf[1:]))
 
-	val.SetInt(int64(integer))
+	val.Set(reflect.ValueOf(integer).Convert(val.Type()))
 
 	return 3, nil
 
@@ -132,7 +139,7 @@ func decodeInt32(buf []byte, val reflect.Value) (int, error) {
 
 	integer := int32(binary.BigEndian.Uint32(buf[1:]))
 
-	val.SetInt(int64(integer))
+	val.Set(reflect.ValueOf(integer).Convert(val.Type()))
 
 	return 5, nil
 
@@ -151,9 +158,34 @@ func decodeInt64(buf []byte, val reflect.Value) (int, error) {
 
 	integer := int64(binary.BigEndian.Uint64(buf[1:]))
 
-	val.SetInt(integer)
+	val.Set(reflect.ValueOf(integer).Convert(val.Type()))
 
 	return 9, nil
+}
+
+func decodeIntSmall(buf []byte, val reflect.Value) (int, error) {
+	chr := buf[0]
+
+	if intPosFixedStart <= chr && chr <= intPosFixedStart+intPosFixedCount {
+		integer := int8(chr) - intPosFixedStart
+		val.Set(reflect.ValueOf(integer).Convert(val.Type()))
+		return 1, nil
+	}
+
+	if intNegFixedStart <= chr && chr < intNegFixedStart+intNegFixedCount {
+		integer := (int8(chr) - intNegFixedStart + 1) * -1
+		val.Set(reflect.ValueOf(integer).Convert(val.Type()))
+		return 1, nil
+	}
+
+	return 0, fmt.Errorf(
+		"expected chr byte to be in range [%d, %d] or [%d, %d], but found %d",
+		intPosFixedStart,
+		intPosFixedStart+intPosFixedCount,
+		intNegFixedStart,
+		intNegFixedStart+intNegFixedCount,
+		chr,
+	)
 }
 
 func decodeFloat32(buf []byte, val reflect.Value) (int, error) {
@@ -168,7 +200,7 @@ func decodeFloat32(buf []byte, val reflect.Value) (int, error) {
 	bits := binary.BigEndian.Uint32(buf[1:])
 	float := math.Float32frombits(bits)
 
-	val.SetFloat(float64(float))
+	val.Set(reflect.ValueOf(float).Convert(val.Type()))
 
 	return 5, nil
 }
@@ -185,7 +217,7 @@ func decodeFloat64(buf []byte, val reflect.Value) (int, error) {
 	bits := binary.BigEndian.Uint64(buf[1:])
 	float := math.Float64frombits(bits)
 
-	val.SetFloat(float)
+	val.Set(reflect.ValueOf(float).Convert(val.Type()))
 
 	return 9, nil
 }

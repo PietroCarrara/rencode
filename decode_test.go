@@ -99,6 +99,15 @@ func TestDecodingInt64(t *testing.T) {
 	fail(testDecodeInt64([]byte{65, 127, 255, 255, 255, 255, 255, 255, 255}, math.MaxInt64), t)
 }
 
+func TestDecodingIntSmall(t *testing.T) {
+	t.Parallel()
+
+	fail(testDecodeIntSmall([]byte{1}, 1), t)
+	fail(testDecodeIntSmall([]byte{10}, 10), t)
+	fail(testDecodeIntSmall([]byte{84}, -15), t)
+	fail(testDecodeIntSmall([]byte{101}, -32), t)
+}
+
 func TestDecodingFloat32(t *testing.T) {
 	t.Parallel()
 
@@ -119,6 +128,7 @@ func TestDecodingSliceVarLength(t *testing.T) {
 	t.Parallel()
 
 	fail(testDecodeSliceVarLength([]byte{chrList, chrTerm}, list{}), t)
+	fail(testDecodeSliceVarLength([]byte{chrList, 1, 2, 3, chrTerm}, list{1, 2, 3}), t)
 	fail(testDecodeSliceVarLength([]byte{chrList, chrList, chrTerm, chrTerm}, list{list{}}), t)
 }
 
@@ -207,6 +217,23 @@ func testDecodeInt64(value []byte, target int64) error {
 	return nil
 }
 
+func testDecodeIntSmall(value []byte, target int) error {
+	var val int
+	bytes, err := Decode(value, &val)
+
+	if err != nil {
+		return err
+	}
+	if bytes != len(value) {
+		return fmt.Errorf("had %d bytes, but only %d were consumed", len(value), bytes)
+	}
+	if target != val {
+		return fmt.Errorf("expected %d, but got %d", target, val)
+	}
+
+	return nil
+}
+
 func testDecodeFloat32(value []byte, target float32) error {
 	var val float32
 	bytes, err := Decode(value, &val)
@@ -268,7 +295,7 @@ func intStr(s string) []byte {
 }
 
 // TODO: Be smart
-// Really poor list comparison, but does the job
+// Really poor list comparison, but gets the job done
 func listEquals(a, b list) bool {
 	str1 := fmt.Sprint(a)
 	str2 := fmt.Sprint(b)
