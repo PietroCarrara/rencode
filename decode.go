@@ -12,14 +12,14 @@ func Decode(buf []byte, ref interface{}) (int, error) {
 	val := reflect.ValueOf(ref)
 
 	if val.Kind() != reflect.Ptr || val.IsNil() {
-		return 0, fmt.Errorf("can't assign value to %v", val.Interface())
+		return 0, fmt.Errorf("can't assign value to %v", ref)
 	}
 
 	ptr := val.Elem()
 
 	switch buf[0] {
 	case chrList:
-		// return decodeSlice
+		return decodeSliceVarLength(buf, ptr)
 	case chrDict:
 		// return decodeMap
 	case chrInt:
@@ -188,4 +188,43 @@ func decodeFloat64(buf []byte, val reflect.Value) (int, error) {
 	val.SetFloat(float)
 
 	return 9, nil
+}
+
+func decodeSliceVarLength(buf []byte, val reflect.Value) (int, error) {
+
+	if buf[0] != chrList {
+		return 0, fmt.Errorf("expected chr byte %d, found %d", chrList, buf[0])
+	}
+
+	typ := val.Type()
+	kind := typ.Kind()
+	if kind != reflect.Slice && kind != reflect.Array && kind != reflect.Interface {
+		return 0, fmt.Errorf("can't decode list into type \"%s\"", typ)
+	}
+
+	if kind == reflect.Interface {
+		typ = reflect.TypeOf([]interface{}{})
+	}
+
+	slice := reflect.MakeSlice(typ, 0, 0)
+	bytes := 0
+	buf = buf[1:]
+
+	for buf[0] != chrTerm {
+		var data interface{}
+		n, err := Decode(buf, &data)
+
+		if err != nil {
+			return 0, err
+		}
+
+		slice = reflect.Append(slice, reflect.ValueOf(data))
+
+		buf = buf[n:]
+		bytes += n
+	}
+
+	val.Set(slice)
+
+	return bytes + 2, nil // bytes + chrList + chrTerm
 }

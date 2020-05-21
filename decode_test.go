@@ -115,12 +115,22 @@ func TestDecodingFloat64(t *testing.T) {
 	fail(testDecodeFloat64([]byte{44, 64, 40, 174, 20, 122, 225, 71, 174}, 12.34), t)
 }
 
+func TestDecodingSliceVarLength(t *testing.T) {
+	t.Parallel()
+
+	fail(testDecodeSliceVarLength([]byte{chrList, chrTerm}, list{}), t)
+	fail(testDecodeSliceVarLength([]byte{chrList, chrList, chrTerm, chrTerm}, list{list{}}), t)
+}
+
 func testDecodeIntStr(value []byte, target int64) error {
 	var val int64
-	_, err := Decode(value, &val)
+	bytes, err := Decode(value, &val)
 
 	if err != nil {
 		return err
+	}
+	if bytes != len(value) {
+		return fmt.Errorf("had %d bytes, but only %d were consumed", len(value), bytes)
 	}
 	if target != val {
 		return fmt.Errorf("expected %d, but got %d", target, val)
@@ -131,10 +141,13 @@ func testDecodeIntStr(value []byte, target int64) error {
 
 func testDecodeInt8(value []byte, target int8) error {
 	var val int8
-	_, err := Decode(value, &val)
+	bytes, err := Decode(value, &val)
 
 	if err != nil {
 		return err
+	}
+	if bytes != len(value) {
+		return fmt.Errorf("had %d bytes, but only %d were consumed", len(value), bytes)
 	}
 	if target != val {
 		return fmt.Errorf("expected %d, but got %d", target, val)
@@ -145,10 +158,13 @@ func testDecodeInt8(value []byte, target int8) error {
 
 func testDecodeInt16(value []byte, target int16) error {
 	var val int16
-	_, err := Decode(value, &val)
+	bytes, err := Decode(value, &val)
 
 	if err != nil {
 		return err
+	}
+	if bytes != len(value) {
+		return fmt.Errorf("had %d bytes, but only %d were consumed", len(value), bytes)
 	}
 	if target != val {
 		return fmt.Errorf("expected %d, but got %d", target, val)
@@ -159,10 +175,13 @@ func testDecodeInt16(value []byte, target int16) error {
 
 func testDecodeInt32(value []byte, target int32) error {
 	var val int32
-	_, err := Decode(value, &val)
+	bytes, err := Decode(value, &val)
 
 	if err != nil {
 		return err
+	}
+	if bytes != len(value) {
+		return fmt.Errorf("had %d bytes, but only %d were consumed", len(value), bytes)
 	}
 	if target != val {
 		return fmt.Errorf("expected %d, but got %d", target, val)
@@ -173,10 +192,13 @@ func testDecodeInt32(value []byte, target int32) error {
 
 func testDecodeInt64(value []byte, target int64) error {
 	var val int64
-	_, err := Decode(value, &val)
+	bytes, err := Decode(value, &val)
 
 	if err != nil {
 		return err
+	}
+	if bytes != len(value) {
+		return fmt.Errorf("had %d bytes, but only %d were consumed", len(value), bytes)
 	}
 	if target != val {
 		return fmt.Errorf("expected %d, but got %d", target, val)
@@ -187,10 +209,13 @@ func testDecodeInt64(value []byte, target int64) error {
 
 func testDecodeFloat32(value []byte, target float32) error {
 	var val float32
-	_, err := Decode(value, &val)
+	bytes, err := Decode(value, &val)
 
 	if err != nil {
 		return err
+	}
+	if bytes != len(value) {
+		return fmt.Errorf("had %d bytes, but only %d were consumed", len(value), bytes)
 	}
 	if target != val {
 		return fmt.Errorf("expected %f, but got %f", target, val)
@@ -201,10 +226,13 @@ func testDecodeFloat32(value []byte, target float32) error {
 
 func testDecodeFloat64(value []byte, target float64) error {
 	var val float64
-	_, err := Decode(value, &val)
+	bytes, err := Decode(value, &val)
 
 	if err != nil {
 		return err
+	}
+	if bytes != len(value) {
+		return fmt.Errorf("had %d bytes, but only %d were consumed", len(value), bytes)
 	}
 	if target != val {
 		return fmt.Errorf("expected %f, but got %f", target, val)
@@ -213,10 +241,37 @@ func testDecodeFloat64(value []byte, target float64) error {
 	return nil
 }
 
+func testDecodeSliceVarLength(value []byte, target list) error {
+	var val list
+	bytes, err := Decode(value, &val)
+
+	if err != nil {
+		return err
+	}
+	if bytes != len(value) {
+		return fmt.Errorf("had %d bytes, but only %d were consumed", len(value), bytes)
+	}
+	if !listEquals(val, target) {
+		return fmt.Errorf("expected %f, but got %f", target, val)
+	}
+
+	return nil
+
+}
+
 func intStr(s string) []byte {
 	bytes := []byte{chrInt}
 	bytes = append(bytes, s...)
 	bytes = append(bytes, chrTerm)
 
 	return bytes
+}
+
+// TODO: Be smart
+// Really poor list comparison, but does the job
+func listEquals(a, b list) bool {
+	str1 := fmt.Sprint(a)
+	str2 := fmt.Sprint(b)
+
+	return str1 == str2
 }
