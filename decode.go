@@ -22,7 +22,7 @@ func Decode(buf []byte, ref interface{}) (int, error) {
 	case chrList:
 		return decodeSliceVariable(buf, ptr)
 	case chrDict:
-		// return decodeMap
+		return decodeMapVariable(buf, ptr)
 	case chrInt:
 		return decodeIntStr(buf, ptr)
 	case chrInt1:
@@ -367,4 +367,50 @@ func decodeSliceVariable(buf []byte, val reflect.Value) (int, error) {
 	val.Set(slice)
 
 	return bytes + 2, nil // bytes + chrList + chrTerm
+}
+
+func decodeMapVariable(buf []byte, val reflect.Value) (int, error) {
+	if buf[0] != chrDict {
+		return 0, fmt.Errorf("expected chr byte %d, found %d", chrDict, buf[0])
+	}
+
+	typ := val.Type()
+	kind := typ.Kind()
+	if kind != reflect.Map && kind != reflect.Interface {
+		return 0, fmt.Errorf("can't decode map into type \"%s\"", typ)
+	}
+
+	if kind == reflect.Interface {
+		typ = reflect.TypeOf(map[interface{}]interface{}{})
+	}
+
+	m := reflect.MakeMap(typ)
+	valueType := m.Type().Elem()
+	bytes := 0
+	buf = buf[1:]
+
+	for buf[0] != chrTerm {
+		var key interface{}
+		var value interface{}
+
+		nKey, err := Decode(buf, &key)
+		if err != nil {
+			return 0, err
+		}
+		buf = buf[nKey:]
+
+		nValue, err := Decode(buf, &value)
+		if err != nil {
+			return 0, err
+		}
+		buf = buf[nValue:]
+
+		m.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value).Convert(valueType))
+		bytes += nKey + nValue
+	}
+
+	val.Set(m)
+
+	return bytes + 2, nil // bytes + chrList + chrTerm
+
 }

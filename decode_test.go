@@ -157,6 +157,14 @@ func TestDecodingSliceVariable(t *testing.T) {
 	fail(testDecodeSlice([]byte{chrList, chrList, chrTerm, chrTerm}, list{list{}}), t)
 }
 
+func TestDecodingMapVariable(t *testing.T) {
+	t.Parallel()
+
+	fail(testDecodeMap([]byte{chrDict, chrTerm}, dict{}), t)
+	fail(testDecodeMap([]byte{chrDict, 131, 111, 110, 101, 1, 131, 116, 119, 111, 2, 133, 116, 104, 114, 101, 101, 3, chrTerm}, dict{"one": 1, "two": 2, "three": 3}), t)
+	fail(testDecodeMap([]byte{chrDict, 131, 109, 97, 112, chrDict, 131, 109, 97, 112, chrDict, chrTerm, chrTerm, chrTerm}, dict{"map": dict{"map": dict{}}}), t)
+}
+
 func testDecodeIntStr(value []byte, target int64) error {
 	var val int64
 	bytes, err := Decode(value, &val)
@@ -320,12 +328,28 @@ func testDecodeSlice(value []byte, target list) error {
 	if bytes != len(value) {
 		return fmt.Errorf("had %d bytes, but only %d were consumed", len(value), bytes)
 	}
-	if !listEquals(val, target) {
-		return fmt.Errorf("expected %f, but got %f", target, val)
+	if !objEquals(val, target) {
+		return fmt.Errorf("expected %v, but got %v", target, val)
 	}
 
 	return nil
+}
 
+func testDecodeMap(value []byte, target dict) error {
+	var val dict
+	bytes, err := Decode(value, &val)
+
+	if err != nil {
+		return err
+	}
+	if bytes != len(value) {
+		return fmt.Errorf("had %d bytes, but only %d were consumed", len(value), bytes)
+	}
+	if !objEquals(val, target) {
+		return fmt.Errorf("expected %v, but got %v", target, val)
+	}
+
+	return nil
 }
 
 func intStr(s string) []byte {
@@ -338,7 +362,7 @@ func intStr(s string) []byte {
 
 // TODO: Be smart
 // Really poor list comparison, but gets the job done
-func listEquals(a, b list) bool {
+func objEquals(a, b interface{}) bool {
 	str1 := fmt.Sprint(a)
 	str2 := fmt.Sprint(b)
 
