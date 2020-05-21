@@ -157,6 +157,14 @@ func TestDecodingSliceVariable(t *testing.T) {
 	fail(testDecodeSlice([]byte{chrList, chrList, chrTerm, chrTerm}, list{list{}}), t)
 }
 
+func TestDecodingMapFixed(t *testing.T) {
+	t.Parallel()
+
+	fail(testDecodeMap([]byte{102}, dict{}), t)
+	fail(testDecodeMap([]byte{104, 1, 2, 129, 51, 66, 64, 128, 0, 0}, dict{1: 2, "3": 4.0}), t)
+	fail(testDecodeMap([]byte{105, 1, 2, 129, 51, 66, 64, 128, 0, 0, 5, 103, 6, 129, 55}, dict{1: 2, "3": 4.0, 5: dict{6: "7"}}), t)
+}
+
 func TestDecodingMapVariable(t *testing.T) {
 	t.Parallel()
 

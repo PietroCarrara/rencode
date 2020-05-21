@@ -66,6 +66,10 @@ func Decode(buf []byte, ref interface{}) (int, error) {
 		return decodeSliceFixed(buf, ptr)
 	}
 
+	if dictFixedStart <= chr && chr < dictFixedStart+dictFixedCount {
+		return decodeMapFixed(buf, ptr)
+	}
+
 	panic("this line should be theoretically impossible to be executed")
 }
 
@@ -369,6 +373,60 @@ func decodeSliceVariable(buf []byte, val reflect.Value) (int, error) {
 	return bytes + 2, nil // bytes + chrList + chrTerm
 }
 
+func decodeMapFixed(buf []byte, val reflect.Value) (int, error) {
+	chr := buf[0]
+
+	if !(dictFixedStart <= chr && chr < dictFixedStart+dictFixedCount) {
+		return 0, fmt.Errorf(
+			"expected chr byte to be in range [%d, %d], but found %d",
+			dictFixedStart,
+			dictFixedStart+dictFixedCount,
+			chr,
+		)
+	}
+
+	typ := val.Type()
+	kind := typ.Kind()
+
+	if kind != reflect.Map && kind != reflect.Interface {
+		return 0, fmt.Errorf("can't decode map into type \"%s\"", typ)
+	}
+
+	if kind == reflect.Interface {
+		typ = reflect.TypeOf(map[interface{}]interface{}{})
+	}
+
+	buf = buf[1:]
+	length := int(chr - dictFixedStart)
+	m := reflect.MakeMapWithSize(typ, length)
+	valueType := m.Type().Elem()
+	bytes := 0
+
+	for i := 0; i < length; i++ {
+		var key interface{}
+		var value interface{}
+
+		nKey, err := Decode(buf, &key)
+		if err != nil {
+			return 0, err
+		}
+		buf = buf[nKey:]
+
+		nValue, err := Decode(buf, &value)
+		if err != nil {
+			return 0, err
+		}
+		buf = buf[nValue:]
+
+		m.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value).Convert(valueType))
+		bytes += nKey + nValue
+	}
+
+	val.Set(m)
+
+	return bytes + 1, nil
+}
+
 func decodeMapVariable(buf []byte, val reflect.Value) (int, error) {
 	if buf[0] != chrDict {
 		return 0, fmt.Errorf("expected chr byte %d, found %d", chrDict, buf[0])
@@ -411,6 +469,6 @@ func decodeMapVariable(buf []byte, val reflect.Value) (int, error) {
 
 	val.Set(m)
 
-	return bytes + 2, nil // bytes + chrList + chrTerm
+	return bytes + 2, nil // bytes + chrMap + chrTerm
 
 }
