@@ -54,6 +54,10 @@ func Decode(buf []byte, ref interface{}) (int, error) {
 		return decodeIntSmall(buf, ptr)
 	}
 
+	if strFixedStart <= chr && chr <= strFixedStart+strFixedCount {
+		return decodeStringFixed(buf, ptr)
+	}
+
 	panic("this line should be theoretically impossible to be executed")
 }
 
@@ -220,6 +224,26 @@ func decodeFloat64(buf []byte, val reflect.Value) (int, error) {
 	val.Set(reflect.ValueOf(float).Convert(val.Type()))
 
 	return 9, nil
+}
+
+func decodeStringFixed(buf []byte, val reflect.Value) (int, error) {
+	chr := buf[0]
+
+	if !(strFixedStart <= chr && chr <= strFixedStart+strFixedCount) {
+		return 0, fmt.Errorf(
+			"expected chr byte to be in range [%d, %d], but found %d",
+			strFixedStart,
+			strFixedStart+strFixedCount,
+			chr,
+		)
+	}
+
+	length := int(chr - strFixedStart)
+	bytes := buf[1 : length+1]
+
+	val.Set(reflect.ValueOf(bytes).Convert(val.Type()))
+
+	return length + 1, nil
 }
 
 func decodeSliceVarLength(buf []byte, val reflect.Value) (int, error) {

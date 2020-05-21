@@ -124,6 +124,16 @@ func TestDecodingFloat64(t *testing.T) {
 	fail(testDecodeFloat64([]byte{44, 64, 40, 174, 20, 122, 225, 71, 174}, 12.34), t)
 }
 
+func TestDecodingStringFixed(t *testing.T) {
+	t.Parallel()
+
+	fail(testDecodeStringFixed([]byte{140, 104, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100}, "hello, world"), t)
+	fail(testDecodeStringFixed([]byte{140, 228, 189, 160, 229, 165, 189, 228, 184, 150, 231, 149, 140}, "你好世界"), t)
+	fail(testDecodeStringFixed([]byte{149, 227, 129, 147, 227, 130, 147, 227, 129, 171, 227, 129, 161, 227, 129, 175, 228, 184, 150, 231, 149, 140}, "こんにちは世界"), t)
+	fail(testDecodeStringFixed([]byte{156, 208, 151, 208, 180, 209, 128, 208, 176, 208, 178, 209, 129, 209, 130, 208, 178, 209, 131, 208, 185, 44, 32, 208, 188, 208, 184, 209, 128}, "Здравствуй, мир"), t)
+	fail(testDecodeStringFixed([]byte{171, 116, 104, 101, 32, 113, 117, 105, 99, 107, 32, 98, 114, 111, 119, 110, 32, 102, 111, 120, 32, 106, 117, 109, 112, 115, 32, 111, 118, 101, 114, 32, 116, 104, 101, 32, 108, 97, 122, 121, 32, 100, 111, 103}, "the quick brown fox jumps over the lazy dog"), t)
+}
+
 func TestDecodingSliceVarLength(t *testing.T) {
 	t.Parallel()
 
@@ -263,6 +273,23 @@ func testDecodeFloat64(value []byte, target float64) error {
 	}
 	if target != val {
 		return fmt.Errorf("expected %f, but got %f", target, val)
+	}
+
+	return nil
+}
+
+func testDecodeStringFixed(value []byte, target string) error {
+	var val string
+	bytes, err := Decode(value, &val)
+
+	if err != nil {
+		return err
+	}
+	if bytes != len(value) {
+		return fmt.Errorf("had %d bytes, but only %d were consumed", len(value), bytes)
+	}
+	if target != val {
+		return fmt.Errorf("expected \"%s\", but got \"%s\"", target, val)
 	}
 
 	return nil
