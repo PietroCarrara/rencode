@@ -58,6 +58,10 @@ func Decode(buf []byte, ref interface{}) (int, error) {
 		return decodeStringFixed(buf, ptr)
 	}
 
+	if '1' <= chr && chr <= '9' {
+		return decodeStringVariable(buf, ptr)
+	}
+
 	panic("this line should be theoretically impossible to be executed")
 }
 
@@ -244,6 +248,37 @@ func decodeStringFixed(buf []byte, val reflect.Value) (int, error) {
 	val.Set(reflect.ValueOf(bytes).Convert(val.Type()))
 
 	return length + 1, nil
+}
+
+func decodeStringVariable(buf []byte, val reflect.Value) (int, error) {
+	chr := buf[0]
+
+	if !('1' <= chr && chr <= '9') {
+		return 0, fmt.Errorf("expected chr byte to be in range [%d, %d], but found %d", '1', '9', chr)
+	}
+
+	lenStr := ""
+
+	for buf[0] != ':' {
+		lenStr += string(buf[0])
+		buf = buf[1:]
+
+		if len(buf) <= 0 {
+			return 0, fmt.Errorf("incomplete stream: could not find ':' while decoding string")
+		}
+	}
+
+	buf = buf[1:] // Skip ':'
+
+	length, err := strconv.Atoi(lenStr)
+	if err != nil {
+		return 0, err
+	}
+
+	str := string(buf[:length])
+	val.Set(reflect.ValueOf(str).Convert(val.Type()))
+
+	return len(lenStr) + 1 + length, nil // length string + ':' + actual string
 }
 
 func decodeSliceVarLength(buf []byte, val reflect.Value) (int, error) {
