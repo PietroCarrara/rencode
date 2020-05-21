@@ -20,7 +20,7 @@ func Decode(buf []byte, ref interface{}) (int, error) {
 
 	switch chr {
 	case chrList:
-		return decodeSliceVarLength(buf, ptr)
+		return decodeSliceVariable(buf, ptr)
 	case chrDict:
 		// return decodeMap
 	case chrInt:
@@ -54,12 +54,16 @@ func Decode(buf []byte, ref interface{}) (int, error) {
 		return decodeIntSmall(buf, ptr)
 	}
 
-	if strFixedStart <= chr && chr <= strFixedStart+strFixedCount {
+	if strFixedStart <= chr && chr < strFixedStart+strFixedCount {
 		return decodeStringFixed(buf, ptr)
 	}
 
 	if '1' <= chr && chr <= '9' {
 		return decodeStringVariable(buf, ptr)
+	}
+
+	if listFixedStart <= chr && chr <= listFixedStart+listFixedCount-1 {
+		return decodeSliceFixed(buf, ptr)
 	}
 
 	panic("this line should be theoretically impossible to be executed")
@@ -243,7 +247,7 @@ func decodeStringFixed(buf []byte, val reflect.Value) (int, error) {
 	}
 
 	length := int(chr - strFixedStart)
-	bytes := buf[1 : length+1]
+	bytes := string(buf[1 : length+1])
 
 	val.Set(reflect.ValueOf(bytes).Convert(val.Type()))
 
@@ -281,7 +285,52 @@ func decodeStringVariable(buf []byte, val reflect.Value) (int, error) {
 	return len(lenStr) + 1 + length, nil // length string + ':' + actual string
 }
 
-func decodeSliceVarLength(buf []byte, val reflect.Value) (int, error) {
+func decodeSliceFixed(buf []byte, val reflect.Value) (int, error) {
+	chr := buf[0]
+
+	if !(listFixedStart <= chr && chr <= listFixedStart+listFixedCount-1) {
+		return 0, fmt.Errorf(
+			"expected chr byte to be in range [%d, %d], but found %d",
+			listFixedStart,
+			listFixedStart+listFixedCount,
+			chr,
+		)
+	}
+
+	typ := val.Type()
+	kind := typ.Kind()
+	if kind != reflect.Slice && kind != reflect.Array && kind != reflect.Interface {
+		return 0, fmt.Errorf("can't decode list into type \"%s\"", typ)
+	}
+
+	if kind == reflect.Interface {
+		typ = reflect.SliceOf(typ)
+	}
+
+	buf = buf[1:]
+	length := int(chr - listFixedStart)
+	slice := reflect.MakeSlice(typ, length, length)
+	bytes := 0
+
+	for i := 0; i < length; i++ {
+		var data interface{}
+
+		n, err := Decode(buf, &data)
+		if err != nil {
+			return 0, err
+		}
+		slice.Index(i).Set(reflect.ValueOf(data))
+
+		bytes += n
+		buf = buf[n:]
+	}
+
+	val.Set(slice)
+
+	return bytes + 1, nil
+}
+
+func decodeSliceVariable(buf []byte, val reflect.Value) (int, error) {
 
 	if buf[0] != chrList {
 		return 0, fmt.Errorf("expected chr byte %d, found %d", chrList, buf[0])
@@ -294,7 +343,7 @@ func decodeSliceVarLength(buf []byte, val reflect.Value) (int, error) {
 	}
 
 	if kind == reflect.Interface {
-		typ = reflect.TypeOf([]interface{}{})
+		typ = reflect.SliceOf(typ)
 	}
 
 	slice := reflect.MakeSlice(typ, 0, 0)
