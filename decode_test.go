@@ -34,7 +34,7 @@ func TestDecodingNil(t *testing.T) {
 	i := 123
 	str := "hello, world"
 	arr := []int{1, 2, 3}
-	dict := map[string]int{"1": 1, "2": 2}
+	Dict := map[string]int{"1": 1, "2": 2}
 
 	null := []byte{chrNone}
 
@@ -42,7 +42,7 @@ func TestDecodingNil(t *testing.T) {
 	Decode(null, &i)
 	Decode(null, &str)
 	Decode(null, &arr)
-	Decode(null, &dict)
+	Decode(null, &Dict)
 
 	if b != false {
 		t.Error("bool is a non-zero value")
@@ -53,7 +53,7 @@ func TestDecodingNil(t *testing.T) {
 	if arr != nil {
 		t.Error("array is a non-zero value")
 	}
-	if dict != nil {
+	if Dict != nil {
 		t.Error("map is a non-zero value")
 	}
 }
@@ -144,33 +144,33 @@ func TestDecodingStringVariable(t *testing.T) {
 func TestDecodingSliceFixed(t *testing.T) {
 	t.Parallel()
 
-	fail(testDecodeSlice([]byte{195, 1, 2, 3}, list{1, 2, 3}), t)
-	fail(testDecodeSlice([]byte{195, 129, 97, 2, 66, 64, 64, 0, 0}, list{"a", 2, 3.0}), t)
-	fail(testDecodeSlice([]byte{194, 1, 194, 2, 194, 3, 192}, list{1, list{2, list{3, list{}}}}), t)
+	fail(testDecodeSlice([]byte{195, 1, 2, 3}, List{1, 2, 3}), t)
+	fail(testDecodeSlice([]byte{195, 129, 97, 2, 66, 64, 64, 0, 0}, List{"a", 2, 3.0}), t)
+	fail(testDecodeSlice([]byte{194, 1, 194, 2, 194, 3, 192}, List{1, List{2, List{3, List{}}}}), t)
 }
 
 func TestDecodingSliceVariable(t *testing.T) {
 	t.Parallel()
 
-	fail(testDecodeSlice([]byte{chrList, chrTerm}, list{}), t)
-	fail(testDecodeSlice([]byte{chrList, 1, 2, 3, chrTerm}, list{1, 2, 3}), t)
-	fail(testDecodeSlice([]byte{chrList, chrList, chrTerm, chrTerm}, list{list{}}), t)
+	fail(testDecodeSlice([]byte{chrList, chrTerm}, List{}), t)
+	fail(testDecodeSlice([]byte{chrList, 1, 2, 3, chrTerm}, List{1, 2, 3}), t)
+	fail(testDecodeSlice([]byte{chrList, chrList, chrTerm, chrTerm}, List{List{}}), t)
 }
 
 func TestDecodingMapFixed(t *testing.T) {
 	t.Parallel()
 
-	fail(testDecodeMap([]byte{102}, dict{}), t)
-	fail(testDecodeMap([]byte{104, 1, 2, 129, 51, 66, 64, 128, 0, 0}, dict{1: 2, "3": 4.0}), t)
-	fail(testDecodeMap([]byte{105, 1, 2, 129, 51, 66, 64, 128, 0, 0, 5, 103, 6, 129, 55}, dict{1: 2, "3": 4.0, 5: dict{6: "7"}}), t)
+	fail(testDecodeMap([]byte{102}, Dict{}), t)
+	fail(testDecodeMap([]byte{104, 1, 2, 129, 51, 66, 64, 128, 0, 0}, Dict{1: 2, "3": 4.0}), t)
+	fail(testDecodeMap([]byte{105, 1, 2, 129, 51, 66, 64, 128, 0, 0, 5, 103, 6, 129, 55}, Dict{1: 2, "3": 4.0, 5: Dict{6: "7"}}), t)
 }
 
 func TestDecodingMapVariable(t *testing.T) {
 	t.Parallel()
 
-	fail(testDecodeMap([]byte{chrDict, chrTerm}, dict{}), t)
-	fail(testDecodeMap([]byte{chrDict, 131, 111, 110, 101, 1, 131, 116, 119, 111, 2, 133, 116, 104, 114, 101, 101, 3, chrTerm}, dict{"one": 1, "two": 2, "three": 3}), t)
-	fail(testDecodeMap([]byte{chrDict, 131, 109, 97, 112, chrDict, 131, 109, 97, 112, chrDict, chrTerm, chrTerm, chrTerm}, dict{"map": dict{"map": dict{}}}), t)
+	fail(testDecodeMap([]byte{chrDict, chrTerm}, Dict{}), t)
+	fail(testDecodeMap([]byte{chrDict, 131, 111, 110, 101, 1, 131, 116, 119, 111, 2, 133, 116, 104, 114, 101, 101, 3, chrTerm}, Dict{"one": 1, "two": 2, "three": 3}), t)
+	fail(testDecodeMap([]byte{chrDict, 131, 109, 97, 112, chrDict, 131, 109, 97, 112, chrDict, chrTerm, chrTerm, chrTerm}, Dict{"map": Dict{"map": Dict{}}}), t)
 }
 
 func testDecodeIntStr(value []byte, target int64) error {
@@ -326,8 +326,8 @@ func testDecodeString(value []byte, target string) error {
 	return nil
 }
 
-func testDecodeSlice(value []byte, target list) error {
-	var val list
+func testDecodeSlice(value []byte, target List) error {
+	var val List
 	bytes, err := Decode(value, &val)
 
 	if err != nil {
@@ -343,8 +343,8 @@ func testDecodeSlice(value []byte, target list) error {
 	return nil
 }
 
-func testDecodeMap(value []byte, target dict) error {
-	var val dict
+func testDecodeMap(value []byte, target Dict) error {
+	var val Dict
 	bytes, err := Decode(value, &val)
 
 	if err != nil {
@@ -366,13 +366,4 @@ func intStr(s string) []byte {
 	bytes = append(bytes, chrTerm)
 
 	return bytes
-}
-
-// TODO: Be smart
-// Really poor list comparison, but gets the job done
-func objEquals(a, b interface{}) bool {
-	str1 := fmt.Sprint(a)
-	str2 := fmt.Sprint(b)
-
-	return str1 == str2
 }

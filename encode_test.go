@@ -6,9 +6,6 @@ import (
 	"testing"
 )
 
-type list []interface{}
-type dict map[interface{}]interface{}
-
 func TestEncodeInt(t *testing.T) {
 	t.Parallel()
 
@@ -54,15 +51,15 @@ func TestEncodeSlice(t *testing.T) {
 
 	fail(testEncodingSlice([]int{1, 2, 3, 4}, []byte{196, 1, 2, 3, 4}), t)
 	fail(testEncodingSlice([]int{1, 2, -256, 255}, []byte{196, 1, 2, 63, 255, 0, 63, 0, 255}), t)
-	fail(testEncodingSlice(list{1, 2, 3, list{4.0, 5.0, 6.0, []string{"7", "8", "9"}}}, []byte{196, 1, 2, 3, 196, 66, 64, 128, 0, 0, 66, 64, 160, 0, 0, 66, 64, 192, 0, 0, 195, 129, 55, 129, 56, 129, 57}), t)
+	fail(testEncodingSlice(List{1, 2, 3, List{4.0, 5.0, 6.0, []string{"7", "8", "9"}}}, []byte{196, 1, 2, 3, 196, 66, 64, 128, 0, 0, 66, 64, 160, 0, 0, 66, 64, 192, 0, 0, 195, 129, 55, 129, 56, 129, 57}), t)
 }
 
 func TestEncodeMap(t *testing.T) {
 	t.Parallel()
 
-	fail(testEncodingMap(dict{1: dict{2: 3}}, []byte{103, 1, 103, 2, 3}), t)
-	fail(testEncodingMap(dict{1: 2, "abc": "def", 1.5: 3}, []byte{105, 1, 2, 66, 63, 192, 0, 0, 3, 131, 97, 98, 99, 131, 100, 101, 102}), t)
-	fail(testEncodingMap(dict{1: dict{2: list{3, 4, 5, 6, dict{7: "Eight!"}}}}, []byte{103, 1, 103, 2, 197, 3, 4, 5, 6, 103, 7, 134, 69, 105, 103, 104, 116, 33}), t)
+	fail(testEncodingMap(Dict{1: Dict{2: 3}}, []byte{103, 1, 103, 2, 3}), t)
+	fail(testEncodingMap(Dict{1: 2, "abc": "def", 1.5: 3}, []byte{105, 1, 2, 66, 63, 192, 0, 0, 3, 131, 97, 98, 99, 131, 100, 101, 102}), t)
+	fail(testEncodingMap(Dict{1: Dict{2: List{3, 4, 5, 6, Dict{7: "Eight!"}}}}, []byte{103, 1, 103, 2, 197, 3, 4, 5, 6, 103, 7, 134, 69, 105, 103, 104, 116, 33}), t)
 }
 
 func testEncodingInt(value int64, target []byte) error {
