@@ -110,10 +110,14 @@ func scanSingle(val, ref reflect.Value) error {
 	ref = ref.Elem()
 
 	if val.Kind() == reflect.Slice || val.Kind() == reflect.Array {
-		// Let's scan each value of the array into a new array,
-		// and assign it to the reference we've received
+		sliceType := ref.Type()
+		if ref.Type().Kind() == reflect.Interface {
+			sliceType = val.Type()
+		}
+
+		// Allocate a new array
 		length := val.Len()
-		values := reflect.MakeSlice(ref.Type(), length, length)
+		values := reflect.MakeSlice(sliceType, length, length)
 
 		// Pointer to each index of the values array
 		refs := make([]interface{}, length)
@@ -127,9 +131,13 @@ func scanSingle(val, ref reflect.Value) error {
 		// Finally set the array
 		ref.Set(values)
 	} else if val.Kind() == reflect.Map {
+		mapType := ref.Type()
+		if ref.Type().Kind() == reflect.Interface {
+			mapType = val.Type()
+		}
 
 		// Allocate a new map
-		result := reflect.MakeMapWithSize(ref.Type(), val.Len())
+		result := reflect.MakeMapWithSize(mapType, val.Len())
 
 		refs := make([]MapRef, 0)
 		valIter := val.MapRange()
@@ -163,10 +171,10 @@ func scanSingle(val, ref reflect.Value) error {
 			}
 
 			if key.IsValid() {
-				key = key.Convert(ref.Type().Key())
+				key = key.Convert(mapType.Key())
 			}
 			if value.IsValid() {
-				value = value.Convert(ref.Type().Elem())
+				value = value.Convert(mapType.Elem())
 			}
 
 			result.SetMapIndex(key, value)
