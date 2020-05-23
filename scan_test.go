@@ -23,7 +23,7 @@ func TestScanSlice(t *testing.T) {
 	var one int
 	var last rune
 
-	_, err := ScanSlice(data, &arr1, &arr2, &map1, &map2, &arr3, &one, &last)
+	_, err := ScanSlice(&data, &arr1, &arr2, &map1, &map2, &arr3, &one, &last)
 	if err != nil {
 		t.Error(err)
 	}
@@ -57,7 +57,7 @@ func TestScanMap(t *testing.T) {
 	var elem6 rune
 
 	n, err := ScanMap(
-		data,
+		&data,
 		MapRef{
 			Key: "123",
 			Ref: &elem1,

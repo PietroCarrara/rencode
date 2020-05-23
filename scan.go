@@ -25,6 +25,10 @@ func ScanSlice(data interface{}, args ...interface{}) (int, error) {
 	dataType := reflect.TypeOf(data)
 	dataValue := reflect.ValueOf(data)
 
+	if dataValue.Kind() == reflect.Ptr {
+		return ScanSlice(dataValue.Elem().Interface(), args...)
+	}
+
 	if dataType.Kind() != reflect.Array && dataType.Kind() != reflect.Slice {
 		return 0, fmt.Errorf("can't use type \"%s\" as slice", dataType)
 	}
@@ -58,6 +62,10 @@ func ScanMap(data interface{}, args ...MapRef) (int, error) {
 
 	dataType := reflect.TypeOf(data)
 	dataValue := reflect.ValueOf(data)
+
+	if dataValue.Kind() == reflect.Ptr {
+		return ScanMap(dataValue.Elem().Interface(), args...)
+	}
 
 	if dataType.Kind() != reflect.Map {
 		return 0, fmt.Errorf("can't use type \"%s\" as map", dataType)
