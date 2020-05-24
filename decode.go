@@ -418,7 +418,10 @@ func decodeMapFixed(buf []byte, val reflect.Value) (int, error) {
 		}
 		buf = buf[nValue:]
 
-		m.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value).Convert(valueType))
+		if reflect.ValueOf(value).IsValid() {
+			m.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value).Convert(valueType))
+		}
+
 		bytes += nKey + nValue
 	}
 

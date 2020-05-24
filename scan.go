@@ -145,10 +145,15 @@ func scanSingle(val, ref reflect.Value) error {
 		// Create a reference for each key
 		for valIter.Next() {
 			var data interface{}
+			if ref.Kind() == reflect.Map {
+				data = reflect.New(ref.Type().Elem()).Interface()
+			} else {
+				data = reflect.New(ref.Type()).Interface()
+			}
 
 			refs = append(refs, MapRef{
 				Key: valIter.Key().Interface(),
-				Ref: &data,
+				Ref: data,
 			})
 		}
 
