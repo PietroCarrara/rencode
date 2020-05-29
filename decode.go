@@ -323,7 +323,10 @@ func decodeSliceFixed(buf []byte, val reflect.Value) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		slice.Index(i).Set(reflect.ValueOf(data))
+
+		if v := reflect.ValueOf(data); v.IsValid() {
+			slice.Index(i).Set(v)
+		}
 
 		bytes += n
 		buf = buf[n:]
